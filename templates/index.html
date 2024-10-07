@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remove Background API</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Image to Remove Background</h1>
+        <form id="qrForm">
+            <input type="file" id="fileInput" accept="image/*">
+            <button type="button" id="removeBgBtn">Remove Background</button>
+        </form>
+        
+        <!-- Image Display -->
+        <div class="qr-code" id="qrCodeContainer" style="display: none;">
+            <h2>Your Image</h2>
+            <img id="outputImage" alt="Output Image">
+            <br>
+            <button id="downloadBtn">Download Image</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('removeBgBtn').addEventListener('click', async () => {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length === 0) {
+                alert('Please select an image first!');
+                return;
+            }
+        
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+        
+            try {
+                const response = await fetch('http://127.0.0.1:5000/remove-bg', {  // URL points to your Flask API
+                    method: 'POST',  // Sending as POST request
+                    body: formData
+                });
+        
+                if (response.ok) {
+                    // Get the response as a blob (binary large object)
+                    const blob = await response.blob();
+
+                    // Create an object URL for the blob and display it in the <img> tag
+                    const imgURL = URL.createObjectURL(blob);
+                    document.getElementById('outputImage').src = imgURL;
+                    document.getElementById('qrCodeContainer').style.display = 'block';
+
+                    // Create a temporary link to download the image
+                    const downloadBtn = document.getElementById('downloadBtn');
+                    downloadBtn.addEventListener('click', () => {
+                        const link = document.createElement('a');
+                        link.href = imgURL;
+                        link.download = 'output_image.png';
+                        link.click();
+                    });
+                } else {
+                    console.error('Failed to remove background', response.statusText);
+                }
+            } catch (error) {
+                console.error('Error removing background:', error);
+            }
+        });
+    </script>
+</body>
+</html>
