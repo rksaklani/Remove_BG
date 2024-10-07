@@ -11,7 +11,9 @@
         <h1>Upload Image to Remove Background</h1>
         <form id="qrForm">
             <input type="file" id="fileInput" accept="image/*">
-            <button type="button" id="removeBgBtn">Remove Background</button>
+               <!-- Add this loader element in your HTML to show while processing -->
+              <div id="loader" style="display: none;">Processing...</div>
+            <button type="button"  id="removeBgBtn">Remove Background</button>
         </form>
         
         <!-- Image Display -->
@@ -23,47 +25,57 @@
         </div>
     </div>
 
-    <script>
-        document.getElementById('removeBgBtn').addEventListener('click', async () => {
-            const fileInput = document.getElementById('fileInput');
-            if (fileInput.files.length === 0) {
-                alert('Please select an image first!');
-                return;
-            }
-        
-            const formData = new FormData();
-            formData.append('image', fileInput.files[0]);
-        
-            try {
-                const response = await fetch('http://127.0.0.1:5000/remove-bg', {  // URL points to your Flask API
-                    method: 'POST',  // Sending as POST request
-                    body: formData
+ 
+
+<script>
+    document.getElementById('removeBgBtn').addEventListener('click', async () => {
+        const fileInput = document.getElementById('fileInput');
+        const removeBgBtn = document.getElementById('removeBgBtn');
+        const loader = document.getElementById('loader');
+
+        if (fileInput.files.length === 0) {
+            alert('Please select an image first!');
+            return;
+        }
+
+        // Show loader and disable button
+        loader.style.display = 'block';
+        removeBgBtn.disabled = false;
+
+        const formData = new FormData();
+        formData.append('image', fileInput.files[0]);
+
+        try {
+            const response = await fetch('http://127.0.0.1:5000/remove-bg', {  // URL points to your Flask API
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const imgURL = URL.createObjectURL(blob);
+                document.getElementById('outputImage').src = imgURL;
+                document.getElementById('qrCodeContainer').style.display = 'block';
+
+                const downloadBtn = document.getElementById('downloadBtn');
+                downloadBtn.addEventListener('click', () => {
+                    const link = document.createElement('a');
+                    link.href = imgURL;
+                    link.download = 'output_image.png';
+                    link.click();
                 });
-        
-                if (response.ok) {
-                    // Get the response as a blob (binary large object)
-                    const blob = await response.blob();
-
-                    // Create an object URL for the blob and display it in the <img> tag
-                    const imgURL = URL.createObjectURL(blob);
-                    document.getElementById('outputImage').src = imgURL;
-                    document.getElementById('qrCodeContainer').style.display = 'block';
-
-                    // Create a temporary link to download the image
-                    const downloadBtn = document.getElementById('downloadBtn');
-                    downloadBtn.addEventListener('click', () => {
-                        const link = document.createElement('a');
-                        link.href = imgURL;
-                        link.download = 'output_image.png';
-                        link.click();
-                    });
-                } else {
-                    console.error('Failed to remove background', response.statusText);
-                }
-            } catch (error) {
-                console.error('Error removing background:', error);
+            } else {
+                console.error('Failed to remove background', response.statusText);
             }
-        });
-    </script>
+        } catch (error) {
+            console.error('Error removing background:', error);
+        } finally {
+            // Hide loader and re-enable button after process completes
+            loader.style.display = 'none';
+            removeBgBtn.disabled = false;
+        }
+    });
+</script>
+
 </body>
 </html>
